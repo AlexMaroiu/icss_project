@@ -12,13 +12,18 @@
 
 /*Include project header files*/
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 #include "CySecDrv.h"
 
 /*#################################*/
 /*         Local defines           */
 /*#################################*/
 
-#define SHA1HashSize (20U)
+#define SHA1_HASH_SIZE                  (20U)
+#define BLOCK_SIZE_BYTE                 (64U)
+#define TRIGGER_HASH_CALCULATION        (0U)
+#define FINISHED_HASH_CALCULATION       (32U)
+#define TIME_ELAPSED_HASH_CALCULATION   (100U)
 
 /*
  *  Define the SHA1 circular left shift macro
@@ -35,7 +40,7 @@
  */
 typedef struct
 {
-    uint32_t Intermediate_Hash[SHA1HashSize >> 2]; /* Message Digest  */
+    uint32_t Intermediate_Hash[SHA1_HASH_SIZE >> 2]; /* Message Digest  */
 
     uint32_t Length_Low;  /* Message length in bits      */
     uint32_t Length_High; /* Message length in bits      */
@@ -65,16 +70,17 @@ typedef struct
 /*#################################*/
 
 SHA1Context context;
-uint8_t hash[SHA1HashSize];
+uint8_t hash[SHA1_HASH_SIZE];
 
-
+volatile uint8_t flash_mem;
+uint8_t block[BLOCK_SIZE_BYTE] = {0};
 /*#################################*/
 /*    Local function declaration   */
 /*#################################*/
 
 CySecDrv_SHA_StatusType SHA1Reset(void);
 CySecDrv_SHA_StatusType SHA1Input(const uint8_t * input, unsigned int length);
-CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1HashSize]);
+CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1_HASH_SIZE]);
 void SHA1PadMessage(void);
 void SHA1ProcessMessageBlock(void);
 
@@ -86,18 +92,24 @@ void SHA1ProcessMessageBlock(void);
 void CySecDrv_Init(void)
 {
     SHA1Reset();
+    
 }
 
 void CySecDrv_Main(void)
 {
     CySecDrv_SHA_StatusType error;
-    if (SHA1Reset() == SHA_SUCCESS)
+    static uint8_t phase_counter = 0;
+    static uint8_t is_reset_success = 0;
+    
+    if(TRIGGER_HASH_CALCULATION == phase_counter)
     {
-        error = SHA1Input((const unsigned char *)"abc", 3);
-        if(error)
+        if (SHA1Reset() == SHA_SUCCESS)
         {
-            // block driver buttons 
+            is_reset_success = 1;
         }
+    }
+    else if(FINISHED_HASH_CALCULATION == phase_counter)
+    {
         error = SHA1Result(hash);
         if(error)
         {
@@ -106,8 +118,32 @@ void CySecDrv_Main(void)
         else
         {
         }
-
+        asm("nop");
+        is_reset_success = 0;
     }
+    else if(TIME_ELAPSED_HASH_CALCULATION == phase_counter)
+    {
+        phase_counter = 255; //overflow for next incrementation / reset timer
+    }
+
+    if((FINISHED_HASH_CALCULATION > phase_counter) && (is_reset_success == 1))
+    {
+        uint8_t * flash = (uint8_t *) 0x2000 + (phase_counter * 64);
+        uint8_t i;
+        for(i=0; i<BLOCK_SIZE_BYTE; i++)
+        {
+            block[i] = pgm_read_byte(flash);
+            flash++;
+        }
+        error = SHA1Input((const uint8_t *)block, BLOCK_SIZE_BYTE);
+        if(error)
+        {
+            // block driver buttons 
+        }
+    }
+
+    phase_counter++;
+
     asm("nop");
 }
 
@@ -171,7 +207,7 @@ CySecDrv_SHA_StatusType SHA1Reset(void)
  *      sha Error Code.
  *
  */
-CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1HashSize])
+CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1_HASH_SIZE])
 {
     int i;
 
@@ -198,7 +234,7 @@ CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1HashSize])
         context.Computed = 1;
     }
 
-    for (i = 0; i < SHA1HashSize; ++i)
+    for (i = 0; i < SHA1_HASH_SIZE; ++i)
     {
         Message_Digest[i] = context.Intermediate_Hash[i >> 2] >> 8 * (3 - (i & 0x03));
     }
@@ -312,10 +348,10 @@ void SHA1ProcessMessageBlock(void)
      */
     for (t = 0; t < 16; t++)
     {
-        W[t] = context.Message_Block[t * 4] << 24;
-        W[t] |= context.Message_Block[t * 4 + 1] << 16;
-        W[t] |= context.Message_Block[t * 4 + 2] << 8;
-        W[t] |= context.Message_Block[t * 4 + 3];
+        W[t] = ((uint32_t)context.Message_Block[t * 4]) << 24;
+        W[t] |= ((uint32_t)context.Message_Block[t * 4 + 1]) << 16;
+        W[t] |= ((uint32_t)context.Message_Block[t * 4 + 2]) << 8;
+        W[t] |= ((uint32_t)context.Message_Block[t * 4 + 3]);
     }
 
     for (t = 16; t < 80; t++)
