@@ -30,6 +30,12 @@ typedef enum
     SHA_STATE_ERROR       /* called Input after Result */
 } CySecDrv_SHA_StatusType;
 
+typedef enum
+{
+    CYSEC_DRV_IS_NOT_SECURED,
+    CYSEC_DRV_IS_SECURED,
+} CySecDrv_StateType;
+
 /*#################################*/
 /*       Global ROM data           */
 /*#################################*/
@@ -44,6 +50,6 @@ typedef enum
 
 void CySecDrv_Init(void);
 void CySecDrv_Main(void);
-uint8_t CySecDrv_IsHashValid(void);
+CySecDrv_StateType CySecDrv_IsHashValid(void);
 
 #endif /* CYSEC_DRV_H_ */

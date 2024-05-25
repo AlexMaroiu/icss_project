@@ -29,13 +29,13 @@ typedef enum
    LED1_PIN,
    LED2_PIN,
    LED_DRV_MAX_NR_LEDS,
-}LedDrvID;
+} LedDrvID;
 
 typedef enum
 {
    LED_DRV_LED_OFF,
    LED_DRV_LED_ON,
-}LedDrvState;
+} LedDrvState;
 
 /*#################################*/
 /*       Global ROM data           */

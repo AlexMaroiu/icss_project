@@ -15,6 +15,7 @@
 #include "Application.h"
 #include "BtnDrv.h"
 #include "LedDrv.h"
+#include "CySecDrv.h"
 
 /*#################################*/
 /*         Local defines           */
@@ -63,18 +64,26 @@ void Application_Main(void)
     static uint8_t btn_right_last = BUTTON_PRESSED;
     static uint8_t btn_left_last = BUTTON_PRESSED;
 
-    if ((BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT) == BUTTON_PRESSED) && (btn_right_last != BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT)))
+    if(CySecDrv_IsHashValid() == CYSEC_DRV_IS_SECURED)
     {
-        LedDrvToggleLEDState(LED_DRV_LED_LEFT);
+        if ((BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT) == BUTTON_PRESSED) && (btn_right_last != BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT)))
+        {
+            LedDrvToggleLEDState(LED_DRV_LED_LEFT);
+        }
+        btn_right_last = BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT);
+    
+    
+        if ((BtnDrv_ReadButton(BTN_DRV_BTN_LEFT) == BUTTON_PRESSED) && (btn_left_last != BtnDrv_ReadButton(BTN_DRV_BTN_LEFT)))
+        {
+            LedDrvToggleLEDState(LED_DRV_LED_RIGHT);
+        }
+        btn_left_last = BtnDrv_ReadButton(BTN_DRV_BTN_LEFT);
     }
-    btn_right_last = BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT);
-   
-   
-    if ((BtnDrv_ReadButton(BTN_DRV_BTN_LEFT) == BUTTON_PRESSED) && (btn_left_last != BtnDrv_ReadButton(BTN_DRV_BTN_LEFT)))
+    else
     {
-        LedDrvToggleLEDState(LED_DRV_LED_RIGHT);
+        LedDrvSetLedState(LED_DRV_LED_LEFT, LED_DRV_LED_OFF);
+        LedDrvSetLedState(LED_DRV_LED_RIGHT, LED_DRV_LED_OFF);
     }
-    btn_left_last = BtnDrv_ReadButton(BTN_DRV_BTN_LEFT);
 }
 
 

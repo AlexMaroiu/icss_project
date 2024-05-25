@@ -51,6 +51,8 @@ typedef struct
 
     uint8_t Computed;  /* Is the digest computed?         */
     uint8_t Corrupted; /* Is the message digest corrupted? */
+    CySecDrv_StateType isSecured;
+    uint8_t isExpectedHashInitialized;
 } SHA1Context;
 
 /*#################################*/
@@ -71,18 +73,42 @@ typedef struct
 
 SHA1Context context;
 uint8_t hash[SHA1_HASH_SIZE];
+uint8_t expected_hash[SHA1_HASH_SIZE] = {0};
+// {
+//     0x8E,
+//     0x65,
+//     0x64,
+//     0xF3,
+//     0x7B,
+//     0xAB,
+//     0xBA,
+//     0x71,
+//     0x85,
+//     0x3E,
+//     0x0E,
+//     0xB2,
+//     0xA1,
+//     0x43,
+//     0x4F,
+//     0xBC,
+//     0xFE,
+//     0x96,
+//     0x18,
+//     0xCB,
+// };
 
-volatile uint8_t flash_mem;
 uint8_t block[BLOCK_SIZE_BYTE] = {0};
+
 /*#################################*/
 /*    Local function declaration   */
 /*#################################*/
 
-CySecDrv_SHA_StatusType SHA1Reset(void);
+void SHA1Reset(void);
 CySecDrv_SHA_StatusType SHA1Input(const uint8_t * input, unsigned int length);
 CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1_HASH_SIZE]);
 void SHA1PadMessage(void);
 void SHA1ProcessMessageBlock(void);
+void CheckSha1Hash(void);
 
 /*#################################*/
 /*  Global function implementation */
@@ -92,45 +118,50 @@ void SHA1ProcessMessageBlock(void);
 void CySecDrv_Init(void)
 {
     SHA1Reset();
-    
+    context.isSecured = CYSEC_DRV_IS_SECURED;
+    context.isExpectedHashInitialized = 0;
 }
 
 void CySecDrv_Main(void)
 {
     CySecDrv_SHA_StatusType error;
     static uint8_t phase_counter = 0;
-    static uint8_t is_reset_success = 0;
     
     if(TRIGGER_HASH_CALCULATION == phase_counter)
     {
-        if (SHA1Reset() == SHA_SUCCESS)
-        {
-            is_reset_success = 1;
-        }
+        SHA1Reset();
     }
     else if(FINISHED_HASH_CALCULATION == phase_counter)
     {
         error = SHA1Result(hash);
         if(error)
         {
-            // block driver buttons
+            context.isSecured = CYSEC_DRV_IS_NOT_SECURED;
         }
         else
         {
+            if (context.isExpectedHashInitialized == 0)
+            {
+                uint8_t index;
+                for (index = 0; index < SHA1_HASH_SIZE; index++)
+                {
+                    expected_hash[index] = hash[index];
+                }
+            }
+
+            CheckSha1Hash();
         }
-        asm("nop");
-        is_reset_success = 0;
     }
     else if(TIME_ELAPSED_HASH_CALCULATION == phase_counter)
     {
         phase_counter = 255; //overflow for next incrementation / reset timer
     }
 
-    if((FINISHED_HASH_CALCULATION > phase_counter) && (is_reset_success == 1))
+    if(FINISHED_HASH_CALCULATION > phase_counter)
     {
-        uint8_t * flash = (uint8_t *) 0x2000 + (phase_counter * 64);
+        uint8_t * flash = (uint8_t *) 0x2000 + (phase_counter * BLOCK_SIZE_BYTE);
         uint8_t i;
-        for(i=0; i<BLOCK_SIZE_BYTE; i++)
+        for (i=0; i<BLOCK_SIZE_BYTE; i++)
         {
             block[i] = pgm_read_byte(flash);
             flash++;
@@ -138,27 +169,36 @@ void CySecDrv_Main(void)
         error = SHA1Input((const uint8_t *)block, BLOCK_SIZE_BYTE);
         if(error)
         {
-            // block driver buttons 
+            context.isSecured = CYSEC_DRV_IS_NOT_SECURED;
         }
     }
 
     phase_counter++;
-
-    asm("nop");
 }
 
-uint8_t CySecDrv_IsHashValid(void)
+CySecDrv_StateType CySecDrv_IsHashValid(void)
 {
-    // if(hash == expected_hash)
-    // {
-    //     return 1;
-    // }
-    return 0;
+    return context.isSecured;
 }
 
 /*#################################*/
 /*  Local function implementation  */
 /*#################################*/
+
+void CheckSha1Hash(void)
+{
+    uint8_t index;
+
+    context.isSecured  = CYSEC_DRV_IS_SECURED;
+
+    for (index = 0; index < SHA1_HASH_SIZE; index++)
+    {
+        if(hash[index] != expected_hash[index])
+        {
+            context.isSecured = CYSEC_DRV_IS_NOT_SECURED;
+        }
+    }
+}
 
 /*
  *  SHA1Reset
@@ -171,9 +211,8 @@ uint8_t CySecDrv_IsHashValid(void)
  *      sha Error Code.
  *
  */
-CySecDrv_SHA_StatusType SHA1Reset(void)
+void SHA1Reset(void)
 {
-
     context.Length_Low = 0;
     context.Length_High = 0;
     context.Message_Block_Index = 0;
@@ -186,8 +225,6 @@ CySecDrv_SHA_StatusType SHA1Reset(void)
 
     context.Computed = 0;
     context.Corrupted = 0;
-
-    return SHA_SUCCESS;
 }
 
 /*
@@ -263,10 +300,6 @@ CySecDrv_SHA_StatusType SHA1Result(uint8_t Message_Digest[SHA1_HASH_SIZE])
 CySecDrv_SHA_StatusType SHA1Input(const uint8_t * input, unsigned int length)
 {
     CySecDrv_SHA_StatusType result = SHA_SUCCESS;
-    if (!length)
-    {
-        result = SHA_SUCCESS;
-    }
 
     if (!input)
     {
