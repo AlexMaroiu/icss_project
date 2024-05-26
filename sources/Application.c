@@ -61,23 +61,23 @@ void Applicaiton_Init(void)
 
 void Application_Main(void)
 {
-    static uint8_t btn_right_last = BUTTON_PRESSED;
-    static uint8_t btn_left_last = BUTTON_PRESSED;
+    static uint8_t btn_right_last = PRESSED;
+    static uint8_t btn_left_last = PRESSED;
 
     if(CySecDrv_IsHashValid() == CYSEC_DRV_IS_SECURED)
     {
-        if ((BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT) == BUTTON_PRESSED) && (btn_right_last != BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT)))
+        if ((BtnDrvGetButtonState(BTN_RIGHT) == PRESSED) && (btn_right_last != BtnDrvGetButtonState(BTN_RIGHT)))
         {
             LedDrvToggleLEDState(LED_DRV_LED_LEFT);
         }
-        btn_right_last = BtnDrv_ReadButton(BTN_DRV_BTN_RIGHT);
+        btn_right_last = BtnDrvGetButtonState(BTN_RIGHT);
     
     
-        if ((BtnDrv_ReadButton(BTN_DRV_BTN_LEFT) == BUTTON_PRESSED) && (btn_left_last != BtnDrv_ReadButton(BTN_DRV_BTN_LEFT)))
+        if ((BtnDrvGetButtonState(BTN_LEFT) == PRESSED) && (btn_left_last != BtnDrvGetButtonState(BTN_LEFT)))
         {
             LedDrvToggleLEDState(LED_DRV_LED_RIGHT);
         }
-        btn_left_last = BtnDrv_ReadButton(BTN_DRV_BTN_LEFT);
+        btn_left_last = BtnDrvGetButtonState(BTN_LEFT);
     }
     else
     {

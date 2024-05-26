@@ -1,13 +1,13 @@
 /*
  * BtnDrv.h
- *  Description: Button Driver header
+ *  Description: short description of header file
  *
- *  Created on: March 20, 2024
- *  Author: Maroiu Alex
+ *  Created on: April 17, 2024
+ *  Author: Peter Cristian
  */
 
-#ifndef BTN_DRV_H_
-#define BTN_DRV_H_
+#ifndef BtnDrv_H_
+#define BtnDrv_H_
 
 /*#################################*/
 /*       Include-Files             */
@@ -17,20 +17,21 @@
 /*       Global defines            */
 /*#################################*/
 
-#define BUTTON_PRESSED     (0U)
-#define BUTTON_UNPRESSED   (1U)
-#define BTN_DRV_BTN_RIGHT  (BTN_DRV_BTN_1_PIN)
-#define BTN_DRV_BTN_LEFT   (BTN_DRV_BTN_2_PIN)
-
 /*#################################*/
 /*      Global data types          */
 /*#################################*/
 typedef enum
 {
-   BTN_DRV_BTN_1_PIN       = 0U,
-   BTN_DRV_BTN_2_PIN       = 1U,
-   BTN_DRV_MAX_NO_BUTTONS  = 2U,
-} BtnDrv_pins_type;
+	BTN_LEFT = 0u,
+	BTN_RIGHT = 1u,
+	MAX_NO_BTN = 2u
+}teBtnDrvID;
+
+typedef enum
+{
+	PRESSED = 0u,
+	NOT_PRESSED = 1u
+}teBtnDrvState;
 
 /*#################################*/
 /*       Global ROM data           */
@@ -43,9 +44,31 @@ typedef enum
 /*#################################*/
 /*   Global function declaration   */
 /*#################################*/
+/* Function name:
+   Description:
+   Function parameters:
+       param_name - description
+*/
 
-void BtnDrv_Init(void) __attribute__ ((section(".BUTTON_SECTION")));
-void BtnDrv_Main(void) __attribute__ ((section(".BUTTON_SECTION")));
-uint8_t BtnDrv_ReadButton(uint8_t index) __attribute__ ((section(".BUTTON_SECTION")));
+void BtnDrvInit() __attribute__((section (".Buton_Section")));
+/* Function name:
+   Description:
+   Function parameters:
+       param_name - description
+*/
+void BtnDrvMain() __attribute__((section (".Buton_Section")));
+/* Function name:
+   Description:
+   Function parameters:
+       param_name - description
+*/
+teBtnDrvState BtnDrvGetButtonState (teBtnDrvID eBtnID) __attribute__((section (".Buton_Section"))); 
+/* Function name:
+   Description:
+   Function parameters:
+       param_name - description
+*/
 
-#endif /* BTN_DRV_H_ */
+
+
+#endif /* BtnDrv_H_ */

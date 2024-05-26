@@ -22,13 +22,7 @@
 /*      Global data types          */
 /*#################################*/
 
-typedef enum
-{
-    SHA_SUCCESS = 0,
-    SHA_NULL,            /* Null pointer parameter */
-    SHA_INPUT_TOO_LONG,    /* input data too long */
-    SHA_STATE_ERROR       /* called Input after Result */
-} CySecDrv_SHA_StatusType;
+
 
 typedef enum
 {

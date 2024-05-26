@@ -65,7 +65,7 @@ volatile uint16_t OS_u16Cnt500ms;
 void OS_vTaskInitialization(void)
 {
    LedDrvInit();
-   BtnDrv_Init();
+   BtnDrvInit();
    CySecDrv_Init();
 }
 
@@ -87,7 +87,7 @@ void OS_vCyclicTask5ms(void)
 
 void OS_vCyclicTask10ms(void)
 {
-   BtnDrv_Main();
+   BtnDrvMain();
 }
 
 void OS_vCyclicTask50ms(void)
